@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           booking_reference: string
@@ -171,6 +201,33 @@ export type Database = {
         }
         Relationships: []
       }
+      seat_locks: {
+        Row: {
+          created_at: string
+          expires_at: string
+          flight_id: string
+          id: string
+          seat_number: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          flight_id: string
+          id?: string
+          seat_number: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          flight_id?: string
+          id?: string
+          seat_number?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -197,6 +254,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_booking_reference: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
