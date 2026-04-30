@@ -2,7 +2,7 @@
  * F3 — Search flights by origin, destination, and date.
  * F4 — Display seats, schedules, and fares.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArrowRight, Calendar, Clock, MapPin, Plane, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -222,9 +222,11 @@ function FlightCard({ flight, booked }: { flight: FlightRow; booked: number }) {
             <Users className="h-3 w-3" /> {seatsLeft} seat{seatsLeft === 1 ? "" : "s"} left
           </div>
           <div className="mt-0.5 text-2xl font-bold text-primary">{priceFmt.format(Number(flight.base_price))}</div>
-          <Button size="sm" className="mt-2" disabled={seatsLeft === 0}>
-            {seatsLeft === 0 ? "Sold out" : "Select"}
-          </Button>
+          <Link to="/book" search={{ flightId: flight.id }} className={seatsLeft === 0 ? "pointer-events-none" : ""}>
+            <Button size="sm" className="mt-2" disabled={seatsLeft === 0}>
+              {seatsLeft === 0 ? "Sold out" : "Select"}
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
