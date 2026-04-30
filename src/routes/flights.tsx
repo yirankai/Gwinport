@@ -2,7 +2,7 @@
  * F3 — Search flights by origin, destination, and date.
  * F4 — Display seats, schedules, and fares.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArrowRight, Calendar, Clock, MapPin, Plane, Users } from "lucide-react";
 import { toast } from "sonner";
