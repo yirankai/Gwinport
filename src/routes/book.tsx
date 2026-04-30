@@ -19,9 +19,9 @@ const searchSchema = z.object({ flightId: z.string().uuid() });
 
 export const Route = createFileRoute("/book")({
   validateSearch: searchSchema,
-  beforeLoad: async ({ search }) => {
+  beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login", search: { redirect: `/book?flightId=${search.flightId}` } });
+    if (!data.user) throw redirect({ to: "/login" });
   },
   component: BookPage,
   head: () => ({ meta: [{ title: "Book your flight — Gwinport" }] }),
