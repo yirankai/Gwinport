@@ -15,57 +15,65 @@ export const lockSeat = createServerFn({ method: "POST" })
     z.object({ flightId: z.string().uuid(), seatNumber: z.string().min(1).max(5) }).parse(d)
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    try {
+      const { supabase, userId } = context;
 
-    // Check the seat isn't already booked
-    const { data: existingBooking } = await supabase
-      .from("bookings")
-      .select("id")
-      .eq("flight_id", data.flightId)
-      .eq("seat_number", data.seatNumber)
-      .in("status", ["confirmed", "pending"])
-      .maybeSingle();
-    if (existingBooking) {
-      throw new Error("Seat already booked.");
-    }
-
-    // Clear our own existing locks for this flight (one seat per session)
-    await supabase
-      .from("seat_locks")
-      .delete()
-      .eq("user_id", userId)
-      .eq("flight_id", data.flightId);
-
-    // Try to insert lock. Unique (flight_id, seat_number) prevents races.
-    const { error } = await supabase
-      .from("seat_locks")
-      .insert({ flight_id: data.flightId, seat_number: data.seatNumber, user_id: userId });
-
-    if (error) {
-      // Check if it's an active lock by someone else
-      const { data: activeLock } = await supabase
-        .from("seat_locks")
-        .select("user_id, expires_at")
+      // Check the seat isn't already booked
+      const { data: existingBooking } = await supabase
+        .from("bookings")
+        .select("id")
         .eq("flight_id", data.flightId)
         .eq("seat_number", data.seatNumber)
-        .gt("expires_at", new Date().toISOString())
+        .in("status", ["confirmed", "pending"])
         .maybeSingle();
-      if (activeLock && activeLock.user_id !== userId) {
-        throw new Error("Seat is being held by another passenger. Try again in a few minutes.");
+      if (existingBooking) {
+        throw new Error("Seat already booked.");
       }
-      // Stale lock — delete and retry
+
+      // Clear our own existing locks for this flight (one seat per session)
       await supabase
         .from("seat_locks")
         .delete()
-        .eq("flight_id", data.flightId)
-        .eq("seat_number", data.seatNumber);
-      const { error: retryError } = await supabase
+        .eq("user_id", userId)
+        .eq("flight_id", data.flightId);
+
+      // Try to insert lock. Unique (flight_id, seat_number) prevents races.
+      const { error } = await supabase
         .from("seat_locks")
         .insert({ flight_id: data.flightId, seat_number: data.seatNumber, user_id: userId });
-      if (retryError) throw new Error(retryError.message);
-    }
 
-    return { ok: true, expiresInSeconds: 300 };
+      if (error) {
+        // Check if it's an active lock by someone else
+        const { data: activeLock } = await supabase
+          .from("seat_locks")
+          .select("user_id, expires_at")
+          .eq("flight_id", data.flightId)
+          .eq("seat_number", data.seatNumber)
+          .gt("expires_at", new Date().toISOString())
+          .maybeSingle();
+        if (activeLock && activeLock.user_id !== userId) {
+          throw new Error("Seat is being held by another passenger. Try again in a few minutes.");
+        }
+        // Stale lock — delete and retry
+        await supabase
+          .from("seat_locks")
+          .delete()
+          .eq("flight_id", data.flightId)
+          .eq("seat_number", data.seatNumber);
+        const { error: retryError } = await supabase
+          .from("seat_locks")
+          .insert({ flight_id: data.flightId, seat_number: data.seatNumber, user_id: userId });
+        if (retryError) throw new Error(retryError.message);
+      }
+
+      return { ok: true, expiresInSeconds: 300 };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not hold seat.";
+      console.error("[lockSeat] failed:", err);
+      // Return a structured failure instead of throwing — prevents the
+      // server-fn runtime from surfacing a raw Response on the client.
+      return { ok: false as const, error: message };
+    }
   });
 
 export const createBooking = createServerFn({ method: "POST" })
