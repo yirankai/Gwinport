@@ -56,6 +56,7 @@ function FlightsPage() {
     let query = supabase
       .from("flights")
       .select("id, flight_number, origin, destination, departure_time, arrival_time, total_seats, base_price")
+      .eq("is_active", true)
       .gte("departure_time", new Date().toISOString())
       .order("departure_time", { ascending: true })
       .limit(50);
