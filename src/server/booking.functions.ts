@@ -90,105 +90,111 @@ export const createBooking = createServerFn({ method: "POST" })
       .parse(d)
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    try {
+      const { supabase, userId } = context;
 
-    // 1. Verify the seat is still locked by this user (or unbooked)
-    const { data: lock } = await supabase
-      .from("seat_locks")
-      .select("user_id, expires_at")
-      .eq("flight_id", data.flightId)
-      .eq("seat_number", data.seatNumber)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+      // 1. Verify the seat is still locked by this user (or unbooked)
+      const { data: lock } = await supabase
+        .from("seat_locks")
+        .select("user_id, expires_at")
+        .eq("flight_id", data.flightId)
+        .eq("seat_number", data.seatNumber)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
 
-    if (!lock || lock.user_id !== userId) {
-      throw new Error("Your seat hold has expired. Please reselect your seat.");
-    }
+      if (!lock || lock.user_id !== userId) {
+        throw new Error("Your seat hold has expired. Please reselect your seat.");
+      }
 
-    // 2. Fetch flight to compute fare
-    const { data: flight, error: flightErr } = await supabase
-      .from("flights")
-      .select("id, flight_number, origin, destination, departure_time, arrival_time, base_price")
-      .eq("id", data.flightId)
-      .single();
-    if (flightErr || !flight) throw new Error("Flight not found.");
+      // 2. Fetch flight to compute fare
+      const { data: flight, error: flightErr } = await supabase
+        .from("flights")
+        .select("id, flight_number, origin, destination, departure_time, arrival_time, base_price")
+        .eq("id", data.flightId)
+        .single();
+      if (flightErr || !flight) throw new Error("Flight not found.");
 
-    const fare = Number(flight.base_price);
-    const tax = Math.round(fare * TAX_RATE * 100) / 100;
-    const total = Math.round((fare + tax) * 100) / 100;
+      const fare = Number(flight.base_price);
+      const tax = Math.round(fare * TAX_RATE * 100) / 100;
+      const total = Math.round((fare + tax) * 100) / 100;
 
-    // 3. Mock payment outcome (F9)
-    if (data.paymentSimulate === "fail") {
-      throw new Error("Payment declined by issuer (simulated).");
-    }
+      // 3. Mock payment outcome (F9)
+      if (data.paymentSimulate === "fail") {
+        throw new Error("Payment declined by issuer (simulated).");
+      }
 
-    // 4. Generate a booking reference via SECURITY DEFINER RPC bypass: use random in app code
-    const ref = generateRef();
+      // 4. Generate a booking reference
+      const ref = generateRef();
 
-    // 5. Insert booking (unique flight_id+seat_number stops race)
-    const { data: booking, error: bookingErr } = await supabase
-      .from("bookings")
-      .insert({
-        booking_reference: ref,
+      // 5. Insert booking (unique flight_id+seat_number stops race)
+      const { data: booking, error: bookingErr } = await supabase
+        .from("bookings")
+        .insert({
+          booking_reference: ref,
+          user_id: userId,
+          flight_id: flight.id,
+          seat_number: data.seatNumber,
+          passenger_name: data.passengerName,
+          passenger_email: data.passengerEmail,
+          fare_amount: fare,
+          tax_amount: tax,
+          total_amount: total,
+          status: "confirmed",
+          payment_status: "paid",
+        })
+        .select("id, booking_reference")
+        .single();
+      if (bookingErr || !booking) {
+        throw new Error(bookingErr?.message ?? "Could not create booking.");
+      }
+
+      // 6. Insert payment record
+      const txnRef = `MOCK-${Date.now().toString(36).toUpperCase()}`;
+      await supabase.from("payments").insert({
+        booking_id: booking.id,
+        amount: total,
+        status: "paid",
+        transaction_ref: txnRef,
+      });
+
+      // 7. Release the seat lock
+      await supabase
+        .from("seat_locks")
+        .delete()
+        .eq("flight_id", flight.id)
+        .eq("seat_number", data.seatNumber);
+
+      // 8. Audit log
+      await supabase.from("audit_logs").insert({
         user_id: userId,
-        flight_id: flight.id,
-        seat_number: data.seatNumber,
-        passenger_name: data.passengerName,
-        passenger_email: data.passengerEmail,
-        fare_amount: fare,
-        tax_amount: tax,
-        total_amount: total,
-        status: "confirmed",
-        payment_status: "paid",
-      })
-      .select("id, booking_reference")
-      .single();
-    if (bookingErr || !booking) {
-      throw new Error(bookingErr?.message ?? "Could not create booking.");
+        action: "booking.created",
+        entity_type: "booking",
+        entity_id: booking.id,
+        metadata: { reference: ref, total, txn: txnRef },
+      });
+
+      // 9. Fire-and-forget confirmation email (F12) via Resend gateway
+      void sendConfirmationEmail({
+        to: data.passengerEmail,
+        passengerName: data.passengerName,
+        reference: ref,
+        flightNumber: flight.flight_number,
+        origin: flight.origin,
+        destination: flight.destination,
+        departure: flight.departure_time,
+        arrival: flight.arrival_time,
+        seatNumber: data.seatNumber,
+        fare,
+        tax,
+        total,
+      }).catch((e) => console.error("[email] failed:", e));
+
+      return { ok: true as const, bookingId: booking.id, reference: ref };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not complete booking.";
+      console.error("[createBooking] failed:", err);
+      return { ok: false as const, error: message };
     }
-
-    // 6. Insert payment record
-    const txnRef = `MOCK-${Date.now().toString(36).toUpperCase()}`;
-    await supabase.from("payments").insert({
-      booking_id: booking.id,
-      amount: total,
-      status: "paid",
-      transaction_ref: txnRef,
-    });
-
-    // 7. Release the seat lock
-    await supabase
-      .from("seat_locks")
-      .delete()
-      .eq("flight_id", flight.id)
-      .eq("seat_number", data.seatNumber);
-
-    // 8. Audit log
-    await supabase.from("audit_logs").insert({
-      user_id: userId,
-      action: "booking.created",
-      entity_type: "booking",
-      entity_id: booking.id,
-      metadata: { reference: ref, total, txn: txnRef },
-    });
-
-    // 9. Fire-and-forget confirmation email (F12) via Resend gateway
-    void sendConfirmationEmail({
-      to: data.passengerEmail,
-      passengerName: data.passengerName,
-      reference: ref,
-      flightNumber: flight.flight_number,
-      origin: flight.origin,
-      destination: flight.destination,
-      departure: flight.departure_time,
-      arrival: flight.arrival_time,
-      seatNumber: data.seatNumber,
-      fare,
-      tax,
-      total,
-    }).catch((e) => console.error("[email] failed:", e));
-
-    return { bookingId: booking.id, reference: ref };
   });
 
 function generateRef() {
