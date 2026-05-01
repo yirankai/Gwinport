@@ -112,6 +112,7 @@ export type Database = {
           destination: string
           flight_number: string
           id: string
+          is_active: boolean
           origin: string
           total_seats: number
           updated_at: string
@@ -124,6 +125,7 @@ export type Database = {
           destination: string
           flight_number: string
           id?: string
+          is_active?: boolean
           origin: string
           total_seats?: number
           updated_at?: string
@@ -136,6 +138,7 @@ export type Database = {
           destination?: string
           flight_number?: string
           id?: string
+          is_active?: boolean
           origin?: string
           total_seats?: number
           updated_at?: string
