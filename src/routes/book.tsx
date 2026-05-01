@@ -168,7 +168,7 @@ function BookPage() {
     if (!flight || !selectedSeat) return;
     setSubmitting(true);
     try {
-      const { reference } = await createBooking({
+      const result = await createBooking({
         data: {
           flightId: flight.id,
           seatNumber: selectedSeat,
@@ -177,8 +177,12 @@ function BookPage() {
           paymentSimulate,
         },
       });
-      toast.success(`Booking confirmed — ${reference}`);
-      navigate({ to: "/bookings/$reference", params: { reference } });
+      if (!result.ok || !result.reference) {
+        toast.error(result.error ?? "Payment failed.");
+        return;
+      }
+      toast.success(`Booking confirmed — ${result.reference}`);
+      navigate({ to: "/bookings/$reference", params: { reference: result.reference } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Payment failed.");
     } finally {
