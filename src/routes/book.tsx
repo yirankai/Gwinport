@@ -138,8 +138,13 @@ function BookPage() {
     if (!selectedSeat || !flight) return;
     setSubmitting(true);
     try {
-      const { expiresInSeconds } = await lockSeat({ data: { flightId: flight.id, seatNumber: selectedSeat } });
-      setHoldExpiresAt(Date.now() + expiresInSeconds * 1000);
+      const result = await lockSeat({ data: { flightId: flight.id, seatNumber: selectedSeat } });
+      if (!result.ok) {
+        toast.error(result.error ?? "Could not hold seat.");
+        void loadFlight();
+        return;
+      }
+      setHoldExpiresAt(Date.now() + (result.expiresInSeconds ?? 300) * 1000);
       setStep("details");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not hold seat.");
