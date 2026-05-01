@@ -140,7 +140,7 @@ function BookPage() {
     try {
       const result = await lockSeat({ data: { flightId: flight.id, seatNumber: selectedSeat } });
       if (!result.ok) {
-        toast.error(result.error ?? "Could not hold seat.");
+        toast.error(result.message ?? "Could not hold seat.");
         void loadFlight();
         return;
       }
@@ -178,7 +178,7 @@ function BookPage() {
         },
       });
       if (!result.ok || !result.reference) {
-        toast.error(result.error ?? "Payment failed.");
+        toast.error(result.message ?? "Payment failed.");
         return;
       }
       toast.success(`Booking confirmed — ${result.reference}`);

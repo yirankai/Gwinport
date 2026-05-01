@@ -1,8 +1,3 @@
-/**
- * Admin flight management server functions (F14).
- * RBAC: every handler verifies the caller has the `admin` role via `has_role`.
- * All mutations append to `audit_logs` for traceability (F13).
- */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -13,6 +8,7 @@ async function assertAdmin(supabase: SupabaseClient, userId: string) {
     _user_id: userId,
     _role: "admin",
   });
+
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin role required.");
 }
@@ -21,28 +17,30 @@ const flightInputSchema = z.object({
   flight_number: z.string().trim().min(2).max(10),
   origin: z.string().trim().min(2).max(80),
   destination: z.string().trim().min(2).max(80),
-  departure_time: z.string().min(10), // ISO datetime
-  arrival_time: z.string().min(10),
-  base_price: z.number().nonnegative().max(10_000_000),
-  total_seats: z.number().int().positive().max(600),
+  departure_time: z.string(),
+  arrival_time: z.string(),
+  base_price: z.number().nonnegative(),
+  total_seats: z.number().int().positive(),
 });
 
 function validateTimes(dep: string, arr: string) {
   const d = new Date(dep);
   const a = new Date(arr);
-  if (Number.isNaN(d.getTime()) || Number.isNaN(a.getTime())) {
-    throw new Error("Invalid date/time format.");
-  }
-  if (a.getTime() <= d.getTime()) {
-    throw new Error("Arrival time must be after departure time.");
+
+  if (a <= d) {
+    throw new Error("Arrival must be after departure.");
   }
 }
 
+/**
+ * CREATE FLIGHT
+ */
 export const adminCreateFlight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => flightInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
     await assertAdmin(supabase, userId);
     validateTimes(data.departure_time, data.arrival_time);
 
@@ -59,19 +57,15 @@ export const adminCreateFlight = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error || !row) throw new Error(error?.message ?? "Failed to create flight.");
 
-    await supabase.from("audit_logs").insert({
-      user_id: userId,
-      action: "flight.created",
-      entity_type: "flight",
-      entity_id: row.id,
-      metadata: { flight_number: data.flight_number, origin: data.origin, destination: data.destination },
-    });
+    if (error) throw new Error(error.message);
 
     return { id: row.id };
   });
 
+/**
+ * UPDATE FLIGHT
+ */
 export const adminUpdateFlight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
@@ -79,6 +73,7 @@ export const adminUpdateFlight = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
     await assertAdmin(supabase, userId);
     validateTimes(data.departure_time, data.arrival_time);
 
@@ -94,19 +89,15 @@ export const adminUpdateFlight = createServerFn({ method: "POST" })
         total_seats: data.total_seats,
       })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
 
-    await supabase.from("audit_logs").insert({
-      user_id: userId,
-      action: "flight.updated",
-      entity_type: "flight",
-      entity_id: data.id,
-      metadata: { flight_number: data.flight_number },
-    });
+    if (error) throw new Error(error.message);
 
     return { ok: true };
   });
 
+/**
+ * ENABLE / DISABLE FLIGHT
+ */
 export const adminSetFlightActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
@@ -114,21 +105,15 @@ export const adminSetFlightActive = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
     await assertAdmin(supabase, userId);
 
     const { error } = await supabase
       .from("flights")
       .update({ is_active: data.isActive })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
 
-    await supabase.from("audit_logs").insert({
-      user_id: userId,
-      action: data.isActive ? "flight.enabled" : "flight.disabled",
-      entity_type: "flight",
-      entity_id: data.id,
-      metadata: {},
-    });
+    if (error) throw new Error(error.message);
 
     return { ok: true };
   });
