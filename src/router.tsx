@@ -1,5 +1,8 @@
 import { createRouter, useRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { installServerFnAuth } from "./integrations/supabase/serverfn-auth";
+
+installServerFnAuth();
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
