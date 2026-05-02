@@ -258,6 +258,7 @@ export type Database = {
     }
     Functions: {
       generate_booking_reference: { Args: never; Returns: string }
+      has_any_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
