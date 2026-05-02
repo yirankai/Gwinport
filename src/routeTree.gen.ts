@@ -17,6 +17,9 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as BookingsReferenceRouteImport } from './routes/bookings.$reference'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminFlightsRouteImport } from './routes/admin.flights'
+import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -58,6 +61,21 @@ const BookingsReferenceRoute = BookingsReferenceRouteImport.update({
   path: '/bookings/$reference',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFlightsRoute = AdminFlightsRouteImport.update({
+  id: '/flights',
+  path: '/flights',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBookingsRoute = AdminBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -66,6 +84,9 @@ export interface FileRoutesByFullPath {
   '/flights': typeof FlightsRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/flights': typeof AdminFlightsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/bookings/$reference': typeof BookingsReferenceRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -75,6 +96,9 @@ export interface FileRoutesByTo {
   '/flights': typeof FlightsRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/flights': typeof AdminFlightsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/bookings/$reference': typeof BookingsReferenceRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -86,6 +110,9 @@ export interface FileRoutesById {
   '/flights': typeof FlightsRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/flights': typeof AdminFlightsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/bookings/$reference': typeof BookingsReferenceRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -98,6 +125,9 @@ export interface FileRouteTypes {
     | '/flights'
     | '/login'
     | '/register'
+    | '/admin/bookings'
+    | '/admin/flights'
+    | '/admin/users'
     | '/bookings/$reference'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -107,6 +137,9 @@ export interface FileRouteTypes {
     | '/flights'
     | '/login'
     | '/register'
+    | '/admin/bookings'
+    | '/admin/flights'
+    | '/admin/users'
     | '/bookings/$reference'
     | '/admin'
   id:
@@ -117,6 +150,9 @@ export interface FileRouteTypes {
     | '/flights'
     | '/login'
     | '/register'
+    | '/admin/bookings'
+    | '/admin/flights'
+    | '/admin/users'
     | '/bookings/$reference'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -189,14 +225,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookingsReferenceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/flights': {
+      id: '/admin/flights'
+      path: '/flights'
+      fullPath: '/admin/flights'
+      preLoaderRoute: typeof AdminFlightsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bookings': {
+      id: '/admin/bookings'
+      path: '/bookings'
+      fullPath: '/admin/bookings'
+      preLoaderRoute: typeof AdminBookingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminBookingsRoute: typeof AdminBookingsRoute
+  AdminFlightsRoute: typeof AdminFlightsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBookingsRoute: AdminBookingsRoute,
+  AdminFlightsRoute: AdminFlightsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
