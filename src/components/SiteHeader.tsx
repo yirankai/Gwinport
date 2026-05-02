@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 
 export function SiteHeader() {
-  const { user, role, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -29,7 +29,7 @@ export function SiteHeader() {
           <Link to="/flights">
             <Button variant="ghost" size="sm">Flights</Button>
           </Link>
-          {user && role === "admin" && (
+          {user && isAdmin && (
             <Link to="/admin">
               <Button variant="ghost" size="sm" className="gap-1.5">
                 <Shield className="h-4 w-4" />
