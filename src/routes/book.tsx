@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SiteHeader } from "@/components/SiteHeader";
-import { lockSeat, createBooking } from "@/server/booking.functions";
+import { lockSeat, createBooking } from "@/lib/booking.functions";
 
 const searchSchema = z.object({ flightId: z.string().uuid() });
 
@@ -138,9 +138,9 @@ function BookPage() {
     if (!selectedSeat || !flight) return;
     setSubmitting(true);
     try {
-      const result = await lockSeat({ data: { flightId: flight.id, seatNumber: selectedSeat } });
+      const result = await lockSeat(flight.id, selectedSeat);
       if (!result.ok) {
-        toast.error(result.message ?? "Could not hold seat.");
+        toast.error(result.error ?? "Could not hold seat.", {});
         void loadFlight();
         return;
       }
@@ -168,17 +168,9 @@ function BookPage() {
     if (!flight || !selectedSeat) return;
     setSubmitting(true);
     try {
-      const result = await createBooking({
-        data: {
-          flightId: flight.id,
-          seatNumber: selectedSeat,
-          passengerName: passengerName.trim(),
-          passengerEmail: passengerEmail.trim(),
-          paymentSimulate,
-        },
-      });
-      if (!result.ok || !result.reference) {
-        toast.error(result.message ?? "Payment failed.");
+      const result = await createBooking(flight.id, selectedSeat, passengerName.trim(), passengerEmail.trim(), paymentSimulate);
+      if (!result.ok || !("reference" in result) || !result.reference) {
+        toast.error("error" in result ? result.error : "Payment failed.");
         return;
       }
       toast.success(`Booking confirmed — ${result.reference}`);
