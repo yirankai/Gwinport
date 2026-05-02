@@ -258,6 +258,7 @@ export type Database = {
     }
     Functions: {
       generate_booking_reference: { Args: never; Returns: string }
+      has_any_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -267,7 +268,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "passenger" | "admin"
+      app_role:
+        | "passenger"
+        | "admin"
+        | "super_admin"
+        | "flight_admin"
+        | "booking_admin"
+        | "support_admin"
       booking_status: "pending" | "confirmed" | "cancelled"
       payment_status: "pending" | "paid" | "failed"
     }
@@ -397,7 +404,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["passenger", "admin"],
+      app_role: [
+        "passenger",
+        "admin",
+        "super_admin",
+        "flight_admin",
+        "booking_admin",
+        "support_admin",
+      ],
       booking_status: ["pending", "confirmed", "cancelled"],
       payment_status: ["pending", "paid", "failed"],
     },
