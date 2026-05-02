@@ -1,16 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
-async function assertAdmin(supabase: SupabaseClient, userId: string) {
+async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
   });
 
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: admin role required.");
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  if (!data) {
+    return { ok: false, message: "Forbidden: admin role required." };
+  }
+
+  return { ok: true };
 }
 
 const flightInputSchema = z.object({
@@ -28,8 +34,10 @@ function validateTimes(dep: string, arr: string) {
   const a = new Date(arr);
 
   if (a <= d) {
-    throw new Error("Arrival must be after departure.");
+    return { ok: false, message: "Arrival must be after departure." };
   }
+
+  return { ok: true };
 }
 
 /**
@@ -41,8 +49,11 @@ export const adminCreateFlight = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    await assertAdmin(supabase, userId);
-    validateTimes(data.departure_time, data.arrival_time);
+    const adminCheck = await assertAdmin(supabase, userId);
+    if (!adminCheck.ok) return adminCheck;
+
+    const timeCheck = validateTimes(data.departure_time, data.arrival_time);
+    if (!timeCheck.ok) return timeCheck;
 
     const { data: row, error } = await supabase
       .from("flights")
@@ -58,9 +69,11 @@ export const adminCreateFlight = createServerFn({ method: "POST" })
       .select("id")
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error || !row) {
+      return { ok: false, message: error?.message ?? "Create failed" };
+    }
 
-    return { id: row.id };
+    return { ok: true, id: row.id };
   });
 
 /**
@@ -74,8 +87,11 @@ export const adminUpdateFlight = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    await assertAdmin(supabase, userId);
-    validateTimes(data.departure_time, data.arrival_time);
+    const adminCheck = await assertAdmin(supabase, userId);
+    if (!adminCheck.ok) return adminCheck;
+
+    const timeCheck = validateTimes(data.departure_time, data.arrival_time);
+    if (!timeCheck.ok) return timeCheck;
 
     const { error } = await supabase
       .from("flights")
@@ -90,7 +106,9 @@ export const adminUpdateFlight = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      return { ok: false, message: error.message };
+    }
 
     return { ok: true };
   });
@@ -101,19 +119,25 @@ export const adminUpdateFlight = createServerFn({ method: "POST" })
 export const adminSetFlightActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ id: z.string().uuid(), isActive: z.boolean() }).parse(d)
+    z.object({
+      id: z.string().uuid(),
+      isActive: z.boolean(),
+    }).parse(d)
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    await assertAdmin(supabase, userId);
+    const adminCheck = await assertAdmin(supabase, userId);
+    if (!adminCheck.ok) return adminCheck;
 
     const { error } = await supabase
       .from("flights")
       .update({ is_active: data.isActive })
       .eq("id", data.id);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      return { ok: false, message: error.message };
+    }
 
     return { ok: true };
   });
