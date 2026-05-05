@@ -14,7 +14,7 @@ import {
   adminCreateFlight,
   adminUpdateFlight,
   adminSetFlightActive,
-} from "@/server/admin-flights.functions";
+} from "@/features/Flights/admin-flights.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

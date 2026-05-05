@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SiteHeader } from "@/components/SiteHeader";
-import { lockSeat, createBooking } from "@/server/booking.functions";
+import { lockSeat, createBooking } from "@/features/Booking/booking.functions";
 
 const searchSchema = z.object({ flightId: z.string().uuid() });
 
