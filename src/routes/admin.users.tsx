@@ -8,7 +8,7 @@ import { ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth, ROLE_LABELS, type AppRole } from "@/lib/auth";
-import { adminListUsers, adminSetUserRole } from "@/features/Admin/admin-users.functions.server";
+import { adminListUsers, adminSetUserRole } from "@/features/Admin/admin-users.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
