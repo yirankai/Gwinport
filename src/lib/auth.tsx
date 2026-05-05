@@ -40,7 +40,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const ROLE_PRIORITY: AppRole[] = [
+export const ROLE_PRIORITY: AppRole[] = [
   "super_admin",
   "admin",
   "flight_admin",
