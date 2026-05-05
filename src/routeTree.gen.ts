@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SelectRoleRouteImport } from './routes/select-role'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FlightsRouteImport } from './routes/flights'
@@ -21,6 +22,11 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminFlightsRouteImport } from './routes/admin.flights'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 
+const SelectRoleRoute = SelectRoleRouteImport.update({
+  id: '/select-role',
+  path: '/select-role',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/flights': typeof FlightsRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/select-role': typeof SelectRoleRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/flights': typeof FlightsRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/select-role': typeof SelectRoleRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/flights': typeof FlightsRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/select-role': typeof SelectRoleRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/flights'
     | '/login'
     | '/register'
+    | '/select-role'
     | '/admin/bookings'
     | '/admin/flights'
     | '/admin/users'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/flights'
     | '/login'
     | '/register'
+    | '/select-role'
     | '/admin/bookings'
     | '/admin/flights'
     | '/admin/users'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/flights'
     | '/login'
     | '/register'
+    | '/select-role'
     | '/admin/bookings'
     | '/admin/flights'
     | '/admin/users'
@@ -164,11 +176,19 @@ export interface RootRouteChildren {
   FlightsRoute: typeof FlightsRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  SelectRoleRoute: typeof SelectRoleRoute
   BookingsReferenceRoute: typeof BookingsReferenceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/select-role': {
+      id: '/select-role'
+      path: '/select-role'
+      fullPath: '/select-role'
+      preLoaderRoute: typeof SelectRoleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -272,6 +292,7 @@ const rootRouteChildren: RootRouteChildren = {
   FlightsRoute: FlightsRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  SelectRoleRoute: SelectRoleRoute,
   BookingsReferenceRoute: BookingsReferenceRoute,
 }
 export const routeTree = rootRouteImport
