@@ -117,7 +117,7 @@ function FlightsPage() {
               <Label htmlFor="origin" className="text-primary-foreground/90 text-xs uppercase tracking-wide">From</Label>
               <Input
                 id="origin"
-                placeholder="e.g. Lagos"
+                placeholder="e.g. Manila"
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
                 className="bg-white text-foreground"
@@ -127,7 +127,7 @@ function FlightsPage() {
               <Label htmlFor="destination" className="text-primary-foreground/90 text-xs uppercase tracking-wide">To</Label>
               <Input
                 id="destination"
-                placeholder="e.g. Abuja"
+                placeholder="e.g. Cebu"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 className="bg-white text-foreground"
@@ -177,7 +177,7 @@ function FlightCard({ flight, booked }: { flight: FlightRow; booked: number }) {
   const arr = new Date(flight.arrival_time);
   const durationMin = Math.round((arr.getTime() - dep.getTime()) / 60000);
   const seatsLeft = Math.max(flight.total_seats - booked, 0);
-  const priceFmt = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
+  const priceFmt = new Intl.NumberFormat("en-PH", { style: "currency", currency: "Php", maximumFractionDigits: 0 });
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-elegant)]">

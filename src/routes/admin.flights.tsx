@@ -143,8 +143,15 @@ function AdminFlightsManager() {
 function FlightRowItem({ flight, onEdit, onChanged }: { flight: FlightRow; onEdit: () => void; onChanged: () => void }) {
   const setActive = useServerFn(adminSetFlightActive);
   const [busy, setBusy] = useState(false);
-  const priceFmt = useMemo(() => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }), []);
-
+const priceFmt = useMemo(
+  () =>
+    new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      maximumFractionDigits: 0,
+    }),
+  []
+);
   const toggle = async () => {
     setBusy(true);
     try {
@@ -161,8 +168,8 @@ function FlightRowItem({ flight, onEdit, onChanged }: { flight: FlightRow; onEdi
   return (
     <TableRow>
       <TableCell className="font-medium">{flight.flight_number}</TableCell>
-      <TableCell>{flight.origin} → {flight.destination}</TableCell>
-      <TableCell className="text-sm">{new Date(flight.departure_time).toLocaleString()}</TableCell>
+      <TableCell>{flight.origin} - {flight.destination}</TableCell>
+      <TableCell className="text-sm">{new Date(flight.departure_time).toLocaleString("en-PH")}</TableCell>
       <TableCell className="text-sm">{new Date(flight.arrival_time).toLocaleString()}</TableCell>
       <TableCell className="text-right">{priceFmt.format(Number(flight.base_price))}</TableCell>
       <TableCell className="text-right">{flight.total_seats}</TableCell>
@@ -228,8 +235,8 @@ function FlightDialog({ open, onOpenChange, mode, flight, onSaved }: { open: boo
         destination: destination.trim(),
         departure_time: new Date(departure).toISOString(),
         arrival_time: new Date(arrival).toISOString(),
-        base_price: Number(basePrice),
-        total_seats: Number(totalSeats),
+        base_price: Number(basePrice) || 0,
+        total_seats: Number(totalSeats) || 1,
       };
       if (mode === "create") {
         await createFn({ data: payload });
@@ -257,9 +264,9 @@ function FlightDialog({ open, onOpenChange, mode, flight, onSaved }: { open: boo
         <form onSubmit={submit} className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Flight number" id="fn"><Input id="fn" value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} placeholder="GW101" required /></Field>
-            <Field label="Base fare (NGN)" id="bp"><Input id="bp" type="number" min="0" step="100" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} required /></Field>
-            <Field label="Origin" id="org"><Input id="org" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Lagos" required /></Field>
-            <Field label="Destination" id="dst"><Input id="dst" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Abuja" required /></Field>
+            <Field label="Base fare (PHP)" id="bp"><Input id="bp" type="number" min="0" step="100" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} required /></Field>
+            <Field label="Origin" id="org"><Input id="org" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Manila" required /></Field>
+            <Field label="Destination" id="dst"><Input id="dst" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Cebu" required /></Field>
             <Field label="Departure" id="dep"><Input id="dep" type="datetime-local" value={departure} onChange={(e) => setDeparture(e.target.value)} required /></Field>
             <Field label="Arrival" id="arr"><Input id="arr" type="datetime-local" value={arrival} onChange={(e) => setArrival(e.target.value)} required /></Field>
             <Field label="Total seats" id="ts"><Input id="ts" type="number" min="1" max="600" value={totalSeats} onChange={(e) => setTotalSeats(e.target.value)} required /></Field>

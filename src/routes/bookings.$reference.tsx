@@ -98,7 +98,7 @@ function BookingDetail() {
 
   const f = booking.flights;
   const fmt = (n: number) =>
-    new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(Number(n));
+    new Intl.NumberFormat("en-PH", { style: "currency", currency: "Php", maximumFractionDigits: 0 }).format(Number(n));
   const dep = f ? new Date(f.departure_time) : null;
   const arr = f ? new Date(f.arrival_time) : null;
 

@@ -127,7 +127,7 @@ function BookPage() {
   }, [flight]);
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(n);
+    new Intl.NumberFormat("en-PH", { style: "currency", currency: "Php", maximumFractionDigits: 0 }).format(n);
 
   const handleSelectSeat = (seat: string) => {
     if (bookedSeats.has(seat) || lockedSeats.has(seat)) return;

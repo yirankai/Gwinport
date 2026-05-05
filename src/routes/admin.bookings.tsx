@@ -81,7 +81,7 @@ function AdminBookingsPage() {
     );
   }
 
-  const fmt = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
+  const fmt = new Intl.NumberFormat("en-PH", { style: "currency", currency: "Php", maximumFractionDigits: 0 });
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-10">
