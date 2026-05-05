@@ -41,14 +41,16 @@ function LoginPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
     setSubmitting(false);
     if (error) {
       toast.error(error.message);
       return;
     }
     toast.success("Welcome back!");
-    navigate({ to: "/flights" });
+    const { resolvePostAuthDestination } = await import("@/lib/post-auth");
+    const dest = await resolvePostAuthDestination(data.user!.id);
+    navigate({ to: dest.to });
   };
 
   return (
