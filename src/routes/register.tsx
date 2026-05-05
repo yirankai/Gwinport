@@ -71,7 +71,7 @@ function RegisterPage() {
       return;
     }
     toast.success("Account created! You're signed in.");
-    navigate({ to: "/flights" });
+    navigate({ to: "/select-role" });
   };
 
   return (
