@@ -48,29 +48,43 @@ function SelectRolePage() {
   const [selected, setSelected] = useState<AppRole | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Redirect unauthenticated users to login
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
 
-  // Always include passenger (auto-granted on signup); plus any other granted roles
   const available: AppRole[] = Array.from(new Set<AppRole>(["passenger", ...roles]));
 
   const handleConfirm = async () => {
-    if (!selected || !user) {
+    if (!selected) {
       toast.error("Please choose a role to continue.");
       return;
     }
+
     setSaving(true);
+
+    // ✅ FIX: always use fresh auth user (not stale context)
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+
+    if (!authUser?.id) {
+      setSaving(false);
+      toast.error("User session not ready. Please try again.");
+      return;
+    }
+
     const { error } = await supabase
-      .from("profiles")
-      .update({ role_selected: true })
-      .eq("id", user.id);
+      .from("user_roles")
+      .insert({
+        user_id: authUser.id,
+        role: selected,
+      });
+
     setSaving(false);
+
     if (error) {
       toast.error(`Could not save role: ${error.message}`);
       return;
     }
+
     toast.success(`Continuing as ${ROLE_LABELS[selected]}`);
     navigate({ to: dashboardForRole(selected) });
   };
@@ -100,6 +114,7 @@ function SelectRolePage() {
           {available.map((role) => {
             const Icon = ROLE_ICONS[role];
             const isSelected = selected === role;
+
             return (
               <button
                 key={role}
@@ -123,6 +138,7 @@ function SelectRolePage() {
                       <CardTitle className="text-base">{ROLE_LABELS[role]}</CardTitle>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <CardDescription>{ROLE_DESCRIPTIONS[role]}</CardDescription>
                   </CardContent>
@@ -136,7 +152,8 @@ function SelectRolePage() {
           <Link to="/" className="text-sm text-muted-foreground hover:underline text-center sm:text-left">
             Cancel
           </Link>
-          <Button onClick={handleConfirm} disabled={!selected || saving} className="sm:w-auto">
+
+          <Button onClick={handleConfirm} disabled={!selected || saving}>
             {saving ? "Saving…" : "Continue"}
           </Button>
         </div>
