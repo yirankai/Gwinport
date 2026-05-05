@@ -1,7 +1,4 @@
-/**
- * F1 — User registration page.
- * New accounts default to passenger role (assigned via DB trigger).
- */
+console.log("SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL);
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
