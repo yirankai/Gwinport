@@ -32,7 +32,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Gwinport — Local Airline Booking" },
-      { name: "description", content: "Book domestic flights across Nigeria with Gwinport. Search, select, and pay — all in one place." },
+      { name: "description", content: "Book domestic flights across Philippines with Gwinport. Search, select, and pay — all in one place." },
       { property: "og:title", content: "Gwinport — Local Airline Booking" },
       { property: "og:description", content: "Search, book, and manage local flights with Gwinport." },
       { property: "og:type", content: "website" },

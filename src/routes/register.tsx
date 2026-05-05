@@ -24,9 +24,22 @@ export const Route = createFileRoute("/register")({
 });
 
 const registerSchema = z.object({
-  fullName: z.string().trim().min(2, "Enter your full name").max(100),
-  email: z.string().trim().email("Enter a valid email").max(255),
-  password: z.string().min(8, "Password must be at least 8 characters").max(72),
+  fullName: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .regex(/^[A-Za-zÀ-ÿÑñ .'-]+$/, "Name must only contain letters and valid name symbols"),
+
+  email: z
+    .string()
+    .trim()
+    .email("Enter a valid email")
+    .max(255),
+
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72),
 });
 
 function RegisterPage() {

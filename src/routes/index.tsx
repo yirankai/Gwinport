@@ -25,7 +25,7 @@ function Index() {
               <Plane className="h-3.5 w-3.5" /> Local Airline Booking
             </span>
             <h1 className="mt-5 text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
-              Fly across Nigeria,
+              Fly across Philippines,
               <br />
               effortlessly.
             </h1>

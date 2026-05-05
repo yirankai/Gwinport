@@ -3,20 +3,24 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
+  const allowedRoles = ["super_admin", "admin", "flight_admin"];
 
-  if (error) {
-    return { ok: false, message: error.message };
+  for (const role of allowedRoles) {
+    const { data, error } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: role,
+    });
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+
+    if (data) {
+      return { ok: true };
+    }
   }
 
-  if (!data) {
-    return { ok: false, message: "Forbidden: admin role required." };
-  }
-
-  return { ok: true };
+  return { ok: false, message: "Forbidden: admin role required." };
 }
 
 const flightInputSchema = z.object({
