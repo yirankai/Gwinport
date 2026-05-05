@@ -29,6 +29,11 @@ export function SiteHeader() {
           <Link to="/flights">
             <Button variant="ghost" size="sm">Flights</Button>
           </Link>
+          {user && (
+            <Link to="/my-bookings">
+              <Button variant="ghost" size="sm">My Bookings</Button>
+            </Link>
+          )}
           {user && isAdmin && (
             <Link to="/admin">
               <Button variant="ghost" size="sm" className="gap-1.5">
