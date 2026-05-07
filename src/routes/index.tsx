@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   Plane,
   Search,
@@ -11,11 +11,16 @@ import {
   Sparkles,
   Headphones,
   BadgeCheck,
+  Clock,
+  Users,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getTodaysFlights, type DailyFlight, type FlightStatus } from "@/lib/sample-flights";
 
 export const Route = createFileRoute("/")({
   head: () => ({
