@@ -456,11 +456,13 @@ function FlightResultCard({ flight }: { flight: DailyFlight }) {
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Fare</div>
             <div className="text-lg font-bold text-primary leading-none">{priceFmt.format(flight.basePrice)}</div>
           </div>
-          <Link to="/flights" disabled={fullyBooked}>
-            <Button size="sm" disabled={fullyBooked}>
-              {fullyBooked ? "Sold out" : "Book Flight"}
-            </Button>
-          </Link>
+          {fullyBooked ? (
+            <Button size="sm" disabled>Sold out</Button>
+          ) : (
+            <Link to="/flights">
+              <Button size="sm">Book Flight</Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>
