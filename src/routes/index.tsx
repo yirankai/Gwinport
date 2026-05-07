@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   Plane,
   Search,
@@ -11,11 +11,16 @@ import {
   Sparkles,
   Headphones,
   BadgeCheck,
+  Clock,
+  Users,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getTodaysFlights, type DailyFlight, type FlightStatus } from "@/lib/sample-flights";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,12 +44,28 @@ export const Route = createFileRoute("/")({
 type TripType = "one-way" | "round-trip" | "multi-city";
 
 function Index() {
-  const navigate = useNavigate();
+  
   const [trip, setTrip] = useState<TripType>("round-trip");
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [departure, setDeparture] = useState("");
   const [returnDate, setReturnDate] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const allFlights = useMemo<DailyFlight[]>(() => getTodaysFlights(), []);
+
+  const filteredFlights = useMemo<DailyFlight[]>(() => {
+    if (!submitted) return allFlights;
+    const o = origin.trim().toLowerCase();
+    const d = destination.trim().toLowerCase();
+    return allFlights.filter((f) => {
+      const matchOrigin = !o || f.origin.toLowerCase().includes(o) || f.originCode.toLowerCase().includes(o);
+      const matchDest = !d || f.destination.toLowerCase().includes(d) || f.destinationCode.toLowerCase().includes(d);
+      // date filter is informational — sample flights are "today" by design
+      const matchDate = !departure || departure === f.date;
+      return matchOrigin && matchDest && matchDate;
+    });
+  }, [allFlights, submitted, origin, destination, departure]);
 
   const swap = () => {
     setOrigin(destination);
@@ -53,35 +74,17 @@ function Index() {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void navigate({ to: "/flights" });
+    setSubmitted(true);
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <SiteHeader />
 
-      {/* Sub-nav strip — Hotels / Flights / etc. */}
+      {/* Sub-nav strip */}
       <div className="border-b bg-card/60 backdrop-blur">
         <div className="container mx-auto flex flex-wrap items-center gap-1 px-4 py-2 text-sm">
-          {[
-            { label: "Flights", to: "/flights", active: true },
-            { label: "Hotels", to: "/flights" },
-            { label: "Airport Transfer", to: "/flights" },
-            { label: "Car Rental", to: "/flights" },
-            { label: "Things to Do", to: "/flights" },
-          ].map((item) => (
-            <Link
-              key={item.label}
-              to={item.to}
-              className={`px-3 py-1.5 rounded-full transition-colors ${
-                item.active
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-semibold">Flights</span>
         </div>
       </div>
 
@@ -227,6 +230,36 @@ function Index() {
         </div>
       </section>
 
+      {/* Flight results */}
+      <section className="container mx-auto px-4 mt-12 sm:mt-16">
+        <div className="flex items-end justify-between gap-3 mb-5">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {submitted ? "Search results" : "Today's flights"}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {filteredFlights.length} flight{filteredFlights.length === 1 ? "" : "s"} • Refreshed daily
+            </p>
+          </div>
+        </div>
+
+        {filteredFlights.length === 0 ? (
+          <div className="rounded-2xl border bg-card p-12 text-center shadow-[var(--shadow-card)]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+              <Plane className="h-6 w-6" />
+            </div>
+            <h3 className="mt-4 font-semibold">No flights match your search</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Try different cities or dates.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {filteredFlights.map((f) => (
+              <FlightResultCard key={f.id} flight={f} />
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Trust strip */}
       <section className="container mx-auto px-4 py-16 sm:py-20">
         <div className="grid gap-6 md:grid-cols-[1.2fr_2fr] items-center">
@@ -353,6 +386,85 @@ function Index() {
           <p>© {new Date().getFullYear()} Gwinport. Academic project.</p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function statusVariant(status: FlightStatus): "default" | "secondary" | "destructive" {
+  if (status === "Available") return "default";
+  if (status === "Few Seats Left") return "secondary";
+  return "destructive";
+}
+
+function FlightResultCard({ flight }: { flight: DailyFlight }) {
+  const priceFmt = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 });
+  const fullyBooked = flight.status === "Fully Booked";
+  const dateLabel = new Date(flight.date).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  return (
+    <div className="group rounded-2xl border bg-card p-5 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-elegant)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--gradient-sky)] text-primary-foreground">
+            <Plane className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-semibold leading-tight">{flight.airline}</div>
+            <div className="text-xs text-muted-foreground">{flight.flightNumber}</div>
+          </div>
+        </div>
+        <Badge variant={statusVariant(flight.status)}>{flight.status}</Badge>
+      </div>
+
+      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div>
+          <div className="text-xl font-bold">{flight.departureTime}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {flight.origin} ({flight.originCode})
+          </div>
+        </div>
+        <div className="flex flex-col items-center text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" />
+          <div className="my-1 flex items-center gap-1">
+            <div className="h-px w-8 bg-border" />
+            <ArrowRight className="h-3.5 w-3.5" />
+            <div className="h-px w-8 bg-border" />
+          </div>
+          <div className="text-[10px] uppercase tracking-wide">Direct</div>
+        </div>
+        <div className="text-right">
+          <div className="text-xl font-bold">{flight.arrivalTime}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+            <MapPin className="h-3 w-3" />
+            {flight.destination} ({flight.destinationCode})
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{dateLabel}</span>
+          <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{flight.availableSeats} seats left</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Fare</div>
+            <div className="text-lg font-bold text-primary leading-none">{priceFmt.format(flight.basePrice)}</div>
+          </div>
+          {fullyBooked ? (
+            <Button size="sm" disabled>Sold out</Button>
+          ) : (
+            <Link to="/flights">
+              <Button size="sm">Book Flight</Button>
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
