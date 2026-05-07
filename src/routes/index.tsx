@@ -44,7 +44,7 @@ export const Route = createFileRoute("/")({
 type TripType = "one-way" | "round-trip" | "multi-city";
 
 function Index() {
-  const navigate = useNavigate();
+  
   const [trip, setTrip] = useState<TripType>("round-trip");
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
