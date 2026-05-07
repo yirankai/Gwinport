@@ -389,3 +389,80 @@ function Index() {
     </div>
   );
 }
+
+function statusVariant(status: FlightStatus): "default" | "secondary" | "destructive" {
+  if (status === "Available") return "default";
+  if (status === "Few Seats Left") return "secondary";
+  return "destructive";
+}
+
+function FlightResultCard({ flight }: { flight: DailyFlight }) {
+  const priceFmt = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 });
+  const fullyBooked = flight.status === "Fully Booked";
+  const dateLabel = new Date(flight.date).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  return (
+    <div className="group rounded-2xl border bg-card p-5 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-elegant)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--gradient-sky)] text-primary-foreground">
+            <Plane className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-semibold leading-tight">{flight.airline}</div>
+            <div className="text-xs text-muted-foreground">{flight.flightNumber}</div>
+          </div>
+        </div>
+        <Badge variant={statusVariant(flight.status)}>{flight.status}</Badge>
+      </div>
+
+      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div>
+          <div className="text-xl font-bold">{flight.departureTime}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {flight.origin} ({flight.originCode})
+          </div>
+        </div>
+        <div className="flex flex-col items-center text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" />
+          <div className="my-1 flex items-center gap-1">
+            <div className="h-px w-8 bg-border" />
+            <ArrowRight className="h-3.5 w-3.5" />
+            <div className="h-px w-8 bg-border" />
+          </div>
+          <div className="text-[10px] uppercase tracking-wide">Direct</div>
+        </div>
+        <div className="text-right">
+          <div className="text-xl font-bold">{flight.arrivalTime}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+            <MapPin className="h-3 w-3" />
+            {flight.destination} ({flight.destinationCode})
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{dateLabel}</span>
+          <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{flight.availableSeats} seats left</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Fare</div>
+            <div className="text-lg font-bold text-primary leading-none">{priceFmt.format(flight.basePrice)}</div>
+          </div>
+          <Link to="/flights" disabled={fullyBooked}>
+            <Button size="sm" disabled={fullyBooked}>
+              {fullyBooked ? "Sold out" : "Book Flight"}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
