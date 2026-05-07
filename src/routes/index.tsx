@@ -230,6 +230,36 @@ function Index() {
         </div>
       </section>
 
+      {/* Flight results */}
+      <section className="container mx-auto px-4 mt-12 sm:mt-16">
+        <div className="flex items-end justify-between gap-3 mb-5">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {submitted ? "Search results" : "Today's flights"}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {filteredFlights.length} flight{filteredFlights.length === 1 ? "" : "s"} • Refreshed daily
+            </p>
+          </div>
+        </div>
+
+        {filteredFlights.length === 0 ? (
+          <div className="rounded-2xl border bg-card p-12 text-center shadow-[var(--shadow-card)]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+              <Plane className="h-6 w-6" />
+            </div>
+            <h3 className="mt-4 font-semibold">No flights match your search</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Try different cities or dates.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {filteredFlights.map((f) => (
+              <FlightResultCard key={f.id} flight={f} />
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Trust strip */}
       <section className="container mx-auto px-4 py-16 sm:py-20">
         <div className="grid gap-6 md:grid-cols-[1.2fr_2fr] items-center">
