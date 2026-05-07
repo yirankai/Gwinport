@@ -50,6 +50,22 @@ function Index() {
   const [destination, setDestination] = useState("");
   const [departure, setDeparture] = useState("");
   const [returnDate, setReturnDate] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const allFlights = useMemo<DailyFlight[]>(() => getTodaysFlights(), []);
+
+  const filteredFlights = useMemo<DailyFlight[]>(() => {
+    if (!submitted) return allFlights;
+    const o = origin.trim().toLowerCase();
+    const d = destination.trim().toLowerCase();
+    return allFlights.filter((f) => {
+      const matchOrigin = !o || f.origin.toLowerCase().includes(o) || f.originCode.toLowerCase().includes(o);
+      const matchDest = !d || f.destination.toLowerCase().includes(d) || f.destinationCode.toLowerCase().includes(d);
+      // date filter is informational — sample flights are "today" by design
+      const matchDate = !departure || departure === f.date;
+      return matchOrigin && matchDest && matchDate;
+    });
+  }, [allFlights, submitted, origin, destination, departure]);
 
   const swap = () => {
     setOrigin(destination);
@@ -58,35 +74,17 @@ function Index() {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void navigate({ to: "/flights" });
+    setSubmitted(true);
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <SiteHeader />
 
-      {/* Sub-nav strip — Hotels / Flights / etc. */}
+      {/* Sub-nav strip */}
       <div className="border-b bg-card/60 backdrop-blur">
         <div className="container mx-auto flex flex-wrap items-center gap-1 px-4 py-2 text-sm">
-          {[
-            { label: "Flights", to: "/flights", active: true },
-            { label: "Hotels", to: "/flights" },
-            { label: "Airport Transfer", to: "/flights" },
-            { label: "Car Rental", to: "/flights" },
-            { label: "Things to Do", to: "/flights" },
-          ].map((item) => (
-            <Link
-              key={item.label}
-              to={item.to}
-              className={`px-3 py-1.5 rounded-full transition-colors ${
-                item.active
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-semibold">Flights</span>
         </div>
       </div>
 
