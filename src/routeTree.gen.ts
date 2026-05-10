@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SelectRoleRouteImport } from './routes/select-role'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as MyBookingsRouteImport } from './routes/my-bookings'
 import { Route as LoginRouteImport } from './routes/login'
@@ -27,6 +28,11 @@ import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 const SelectRoleRoute = SelectRoleRouteImport.update({
   id: '/select-role',
   path: '/select-role',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/my-bookings': typeof MyBookingsRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/select-role': typeof SelectRoleRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/my-bookings': typeof MyBookingsRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/select-role': typeof SelectRoleRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/my-bookings': typeof MyBookingsRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/select-role': typeof SelectRoleRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-bookings'
     | '/register'
+    | '/reset-password'
     | '/select-role'
     | '/admin/bookings'
     | '/admin/flights'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-bookings'
     | '/register'
+    | '/reset-password'
     | '/select-role'
     | '/admin/bookings'
     | '/admin/flights'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-bookings'
     | '/register'
+    | '/reset-password'
     | '/select-role'
     | '/admin/bookings'
     | '/admin/flights'
@@ -202,6 +214,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MyBookingsRoute: typeof MyBookingsRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SelectRoleRoute: typeof SelectRoleRoute
   BookingsReferenceRoute: typeof BookingsReferenceRoute
 }
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/select-role'
       fullPath: '/select-role'
       preLoaderRoute: typeof SelectRoleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -334,6 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MyBookingsRoute: MyBookingsRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SelectRoleRoute: SelectRoleRoute,
   BookingsReferenceRoute: BookingsReferenceRoute,
 }
