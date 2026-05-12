@@ -13,7 +13,6 @@ export async function lockSeat(flightId: string, seatNumber: string) {
     return { ok: false, error: "Not authenticated." };
   }
 
-  // check if already booked
   const { data: existing } = await supabase
     .from("bookings")
     .select("id")
@@ -26,25 +25,31 @@ export async function lockSeat(flightId: string, seatNumber: string) {
     return { ok: false, error: "Seat already booked." };
   }
 
-  // clear previous locks
   await supabase
     .from("seat_locks")
     .delete()
     .eq("user_id", userId)
     .eq("flight_id", flightId);
 
-  // insert lock
-  const { error } = await supabase.from("seat_locks").insert({
-    flight_id: flightId,
-    seat_number: seatNumber,
-    user_id: userId,
-  });
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+  const { error } = await supabase
+    .from("seat_locks")
+    .insert({
+      flight_id: flightId,
+      seat_number: seatNumber,
+      user_id: userId,
+      expires_at: expiresAt,
+    });
 
   if (error) {
     return { ok: false, error: error.message };
   }
 
-  return { ok: true, expiresInSeconds: 300 };
+  return {
+    ok: true,
+    expiresInSeconds: 300,
+  };
 }
 
 /**
