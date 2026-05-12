@@ -4,7 +4,7 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, CreditCard, Loader2, Plane, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, CreditCard, Loader2, Plane, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,21 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SiteHeader } from "@/components/SiteHeader";
 import { lockSeat, createBooking } from "@/features/Booking/booking.functions";
 
-const searchSchema = z.object({ flightId: z.string().uuid() });
+const searchSchema = z.object({
+  flightId: z.string().optional(),
+  origin: z.string().optional(),
+  destination: z.string().optional(),
+  date: z.string().optional(),
+});
+
+const flightIdSchema = z.string().uuid();
 
 export const Route = createFileRoute("/book")({
   validateSearch: searchSchema,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location, search }) => {
+    if (!search.flightId) return;
     const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+    if (!data.user) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: BookPage,
   head: () => ({ meta: [{ title: "Book your flight — Gwinport" }] }),
@@ -45,9 +53,10 @@ interface Flight {
 type Step = "seat" | "details" | "payment";
 
 function BookPage() {
-  const { flightId } = Route.useSearch();
+  const { flightId, origin, destination, date } = Route.useSearch();
   const navigate = useNavigate();
   const [flight, setFlight] = useState<Flight | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [bookedSeats, setBookedSeats] = useState<Set<string>>(new Set());
   const [lockedSeats, setLockedSeats] = useState<Set<string>>(new Set());
   const [selectedSeat, setSelectedSeat] = useState<string | null>(null);
@@ -60,6 +69,15 @@ function BookPage() {
   const [passengerName, setPassengerName] = useState("");
   const [passengerEmail, setPassengerEmail] = useState("");
   const [paymentSimulate, setPaymentSimulate] = useState<"success" | "fail">("success");
+  const [searchOrigin, setSearchOrigin] = useState(origin ?? "");
+  const [searchDestination, setSearchDestination] = useState(destination ?? "");
+  const [searchDate, setSearchDate] = useState(date ?? "");
+
+  const flightsSearch = {
+    origin,
+    destination,
+    date,
+  };
 
   useEffect(() => {
     void loadFlight();
@@ -72,12 +90,22 @@ function BookPage() {
 
   const loadFlight = async () => {
     setLoading(true);
+    setLoadError(null);
+    if (!flightId) {
+      setLoading(false);
+      return;
+    }
+    if (!flightIdSchema.safeParse(flightId).success) {
+      setLoadError("Selected flight not found. Please search again.");
+      setLoading(false);
+      return;
+    }
     const [{ data: f, error }, { data: bks }, { data: lks }] = await Promise.all([
       supabase
         .from("flights")
         .select("id, flight_number, origin, destination, departure_time, arrival_time, base_price, total_seats")
         .eq("id", flightId)
-        .single(),
+        .maybeSingle(),
       supabase
         .from("bookings")
         .select("seat_number")
@@ -90,13 +118,13 @@ function BookPage() {
         .gt("expires_at", new Date().toISOString()),
     ]);
     if (error || !f) {
-      toast.error("Flight not found.");
-      navigate({ to: "/flights" });
+      setLoadError("Selected flight not found. Please search again.");
+      setLoading(false);
       return;
     }
     setFlight(f as Flight);
-    setBookedSeats(new Set((bks ?? []).map((b) => b.seat_number)));
-    setLockedSeats(new Set((lks ?? []).map((l) => l.seat_number)));
+    setBookedSeats(new Set((bks ?? []).map((b: { seat_number: string }) => b.seat_number)));
+    setLockedSeats(new Set((lks ?? []).map((l: { seat_number: string }) => l.seat_number)));
     setLoading(false);
   };
 
@@ -163,6 +191,18 @@ function BookPage() {
     setStep("payment");
   };
 
+  const handleFindFlights = (e: FormEvent) => {
+    e.preventDefault();
+    navigate({
+      to: "/flights",
+      search: {
+        origin: searchOrigin.trim() || undefined,
+        destination: searchDestination.trim() || undefined,
+        date: searchDate || undefined,
+      },
+    });
+  };
+
   const handlePay = async (e: FormEvent) => {
     e.preventDefault();
     if (!flight || !selectedSeat) return;
@@ -181,6 +221,67 @@ function BookPage() {
       setSubmitting(false);
     }
   };
+
+  if (!flightId) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <SiteHeader />
+        <section className="bg-[var(--gradient-hero)] text-primary-foreground">
+          <div className="container mx-auto px-4 py-10">
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Find a flight to book</h1>
+            <p className="mt-1 text-primary-foreground/80">Search by origin, destination and date.</p>
+
+            <form
+              onSubmit={handleFindFlights}
+              className="mt-6 grid gap-3 rounded-xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-2 lg:grid-cols-4"
+            >
+              <div className="space-y-1.5">
+                <Label htmlFor="booking-origin" className="text-primary-foreground/90 text-xs uppercase tracking-wide">From</Label>
+                <Input id="booking-origin" placeholder="e.g. Manila" value={searchOrigin} onChange={(e) => setSearchOrigin(e.target.value)} className="bg-white text-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="booking-destination" className="text-primary-foreground/90 text-xs uppercase tracking-wide">To</Label>
+                <Input id="booking-destination" placeholder="e.g. Cebu" value={searchDestination} onChange={(e) => setSearchDestination(e.target.value)} className="bg-white text-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="booking-date" className="text-primary-foreground/90 text-xs uppercase tracking-wide">Date</Label>
+                <Input id="booking-date" type="date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} className="bg-white text-foreground" />
+              </div>
+              <div className="flex items-end">
+                <Button type="submit" size="lg" variant="secondary" className="w-full gap-2">
+                  <Search className="h-4 w-4" /> Search flights
+                </Button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <SiteHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="rounded-xl border bg-card p-8 text-center max-w-md shadow-[var(--shadow-card)]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+              <Plane className="h-6 w-6" />
+            </div>
+            <h2 className="mt-4 font-semibold text-lg">{loadError}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The flight you tried to book is unavailable or no longer exists.
+            </p>
+            <Link to="/flights" search={flightsSearch} className="inline-block mt-4">
+              <Button variant="outline" className="gap-1.5">
+                <ArrowLeft className="h-4 w-4" /> Back to flights
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !flight) {
     return (
@@ -203,7 +304,7 @@ function BookPage() {
 
       <section className="bg-[var(--gradient-hero)] text-primary-foreground">
         <div className="container mx-auto px-4 py-6">
-          <Link to="/flights" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 hover:text-primary-foreground">
+          <Link to="/flights" search={flightsSearch} className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 hover:text-primary-foreground">
             <ArrowLeft className="h-4 w-4" /> Back to flights
           </Link>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">

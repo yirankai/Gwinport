@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SiteHeader } from "@/components/SiteHeader";
 
+const searchSchema = z.object({ redirect: z.string().optional() });
+
 export const Route = createFileRoute("/login")({
+  validateSearch: searchSchema,
   component: LoginPage,
   head: () => ({
     meta: [
@@ -28,6 +31,7 @@ const loginSchema = z.object({
 });
 
 function LoginPage() {
+  const { redirect } = Route.useSearch();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,6 +52,10 @@ function LoginPage() {
       return;
     }
     toast.success("Welcome back!");
+    if (redirect?.startsWith("/")) {
+      window.location.assign(redirect);
+      return;
+    }
     const { resolvePostAuthDestination } = await import("@/lib/post-auth");
     const dest = await resolvePostAuthDestination(data.user!.id);
     navigate({ to: dest.to });

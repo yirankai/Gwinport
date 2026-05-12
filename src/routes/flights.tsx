@@ -4,6 +4,7 @@
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { z } from "zod";
 import { ArrowRight, Calendar, Clock, MapPin, Plane, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { SiteHeader } from "@/components/SiteHeader";
 
+const searchSchema = z.object({
+  origin: z.string().optional(),
+  destination: z.string().optional(),
+  date: z.string().optional(),
+});
+
 export const Route = createFileRoute("/flights")({
+  validateSearch: searchSchema,
   component: FlightsPage,
   head: () => ({
     meta: [
@@ -35,9 +43,10 @@ interface FlightRow {
 }
 
 function FlightsPage() {
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [date, setDate] = useState("");
+  const search = Route.useSearch();
+  const [origin, setOrigin] = useState(search.origin ?? "");
+  const [destination, setDestination] = useState(search.destination ?? "");
+  const [date, setDate] = useState(search.date ?? "");
   const [flights, setFlights] = useState<FlightRow[]>([]);
   const [bookedCounts, setBookedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
@@ -225,7 +234,7 @@ function FlightCard({ flight, booked }: { flight: FlightRow; booked: number }) {
           <div className="mt-0.5 text-2xl font-bold text-primary">{priceFmt.format(Number(flight.base_price))}</div>
           <Link to="/book" search={{ flightId: flight.id }} className={seatsLeft === 0 ? "pointer-events-none" : ""}>
             <Button size="sm" className="mt-2" disabled={seatsLeft === 0}>
-              {seatsLeft === 0 ? "Sold out" : "Select"}
+              {seatsLeft === 0 ? "Sold out" : "Book Flight"}
             </Button>
           </Link>
         </div>

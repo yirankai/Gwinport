@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Plane,
   Search,
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getTodaysFlights, type DailyFlight, type FlightStatus } from "@/lib/sample-flights";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,6 +43,20 @@ export const Route = createFileRoute("/")({
 
 type TripType = "one-way" | "round-trip" | "multi-city";
 
+type FlightStatus = "Available" | "Few Seats Left" | "Fully Booked";
+
+interface HomeFlight {
+  id: string;
+  flight_number: string;
+  origin: string;
+  destination: string;
+  departure_time: string;
+  arrival_time: string;
+  total_seats: number;
+  base_price: number;
+  bookedSeats: number;
+}
+
 function Index() {
   
   const [trip, setTrip] = useState<TripType>("round-trip");
@@ -51,21 +65,59 @@ function Index() {
   const [departure, setDeparture] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [flights, setFlights] = useState<HomeFlight[]>([]);
+  const [loadingFlights, setLoadingFlights] = useState(true);
 
-  const allFlights = useMemo<DailyFlight[]>(() => getTodaysFlights(), []);
+  useEffect(() => {
+    void loadFlights();
+  }, []);
 
-  const filteredFlights = useMemo<DailyFlight[]>(() => {
-    if (!submitted) return allFlights;
+  const loadFlights = async () => {
+    setLoadingFlights(true);
+    const { data, error } = await supabase
+      .from("flights")
+      .select("id, flight_number, origin, destination, departure_time, arrival_time, total_seats, base_price")
+      .eq("is_active", true)
+      .gte("departure_time", new Date().toISOString())
+      .order("departure_time", { ascending: true })
+      .limit(12);
+
+    if (error) {
+      setFlights([]);
+      setLoadingFlights(false);
+      return;
+    }
+
+    const ids = (data ?? []).map((flight) => flight.id);
+    const { data: bookings } = ids.length
+      ? await supabase.from("bookings").select("flight_id").in("flight_id", ids).in("status", ["confirmed", "pending"])
+      : { data: [] };
+
+    const bookedCounts: Record<string, number> = {};
+    (bookings ?? []).forEach((booking) => {
+      bookedCounts[booking.flight_id] = (bookedCounts[booking.flight_id] ?? 0) + 1;
+    });
+
+    setFlights(
+      (data ?? []).map((flight) => ({
+        ...flight,
+        bookedSeats: bookedCounts[flight.id] ?? 0,
+      })),
+    );
+    setLoadingFlights(false);
+  };
+
+  const filteredFlights = useMemo<HomeFlight[]>(() => {
+    if (!submitted) return flights;
     const o = origin.trim().toLowerCase();
     const d = destination.trim().toLowerCase();
-    return allFlights.filter((f) => {
-      const matchOrigin = !o || f.origin.toLowerCase().includes(o) || f.originCode.toLowerCase().includes(o);
-      const matchDest = !d || f.destination.toLowerCase().includes(d) || f.destinationCode.toLowerCase().includes(d);
-      // date filter is informational — sample flights are "today" by design
-      const matchDate = !departure || departure === f.date;
+    return flights.filter((f) => {
+      const matchOrigin = !o || f.origin.toLowerCase().includes(o);
+      const matchDest = !d || f.destination.toLowerCase().includes(d);
+      const matchDate = !departure || f.departure_time.slice(0, 10) === departure;
       return matchOrigin && matchDest && matchDate;
     });
-  }, [allFlights, submitted, origin, destination, departure]);
+  }, [flights, submitted, origin, destination, departure]);
 
   const swap = () => {
     setOrigin(destination);
@@ -243,7 +295,13 @@ function Index() {
           </div>
         </div>
 
-        {filteredFlights.length === 0 ? (
+        {loadingFlights ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[0, 1, 2, 3].map((item) => (
+              <div key={item} className="h-48 rounded-2xl border bg-card animate-pulse" />
+            ))}
+          </div>
+        ) : filteredFlights.length === 0 ? (
           <div className="rounded-2xl border bg-card p-12 text-center shadow-[var(--shadow-card)]">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Plane className="h-6 w-6" />
@@ -396,10 +454,14 @@ function statusVariant(status: FlightStatus): "default" | "secondary" | "destruc
   return "destructive";
 }
 
-function FlightResultCard({ flight }: { flight: DailyFlight }) {
+function FlightResultCard({ flight }: { flight: HomeFlight }) {
   const priceFmt = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 });
-  const fullyBooked = flight.status === "Fully Booked";
-  const dateLabel = new Date(flight.date).toLocaleDateString(undefined, {
+  const seatsLeft = Math.max(flight.total_seats - flight.bookedSeats, 0);
+  const status: FlightStatus = seatsLeft === 0 ? "Fully Booked" : seatsLeft <= Math.max(5, Math.floor(flight.total_seats * 0.1)) ? "Few Seats Left" : "Available";
+  const fullyBooked = status === "Fully Booked";
+  const dep = new Date(flight.departure_time);
+  const arr = new Date(flight.arrival_time);
+  const dateLabel = dep.toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -413,19 +475,19 @@ function FlightResultCard({ flight }: { flight: DailyFlight }) {
             <Plane className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-semibold leading-tight">{flight.airline}</div>
-            <div className="text-xs text-muted-foreground">{flight.flightNumber}</div>
+            <div className="font-semibold leading-tight">Gwinport Air</div>
+            <div className="text-xs text-muted-foreground">{flight.flight_number}</div>
           </div>
         </div>
-        <Badge variant={statusVariant(flight.status)}>{flight.status}</Badge>
+        <Badge variant={statusVariant(status)}>{status}</Badge>
       </div>
 
       <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div>
-          <div className="text-xl font-bold">{flight.departureTime}</div>
+          <div className="text-xl font-bold">{dep.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3 w-3" />
-            {flight.origin} ({flight.originCode})
+            {flight.origin}
           </div>
         </div>
         <div className="flex flex-col items-center text-muted-foreground">
@@ -438,10 +500,10 @@ function FlightResultCard({ flight }: { flight: DailyFlight }) {
           <div className="text-[10px] uppercase tracking-wide">Direct</div>
         </div>
         <div className="text-right">
-          <div className="text-xl font-bold">{flight.arrivalTime}</div>
+          <div className="text-xl font-bold">{arr.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
           <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
             <MapPin className="h-3 w-3" />
-            {flight.destination} ({flight.destinationCode})
+            {flight.destination}
           </div>
         </div>
       </div>
@@ -449,17 +511,25 @@ function FlightResultCard({ flight }: { flight: DailyFlight }) {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{dateLabel}</span>
-          <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{flight.availableSeats} seats left</span>
+          <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{seatsLeft} seats left</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Fare</div>
-            <div className="text-lg font-bold text-primary leading-none">{priceFmt.format(flight.basePrice)}</div>
+            <div className="text-lg font-bold text-primary leading-none">{priceFmt.format(Number(flight.base_price))}</div>
           </div>
           {fullyBooked ? (
             <Button size="sm" disabled>Sold out</Button>
           ) : (
-            <Link to="/flights">
+            <Link
+              to="/book"
+              search={{
+                flightId: flight.id,
+                origin: flight.origin,
+                destination: flight.destination,
+                date: flight.departure_time.slice(0, 10),
+              }}
+            >
               <Button size="sm">Book Flight</Button>
             </Link>
           )}
